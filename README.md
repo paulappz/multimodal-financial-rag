@@ -60,7 +60,9 @@ finrag search-visual "revenue trend chart"  # ColPali page search
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | — | Claude API credentials |
+| `ANTHROPIC_API_KEY` | — | Claude API credentials (first-party backend) |
+| `AWS_BEARER_TOKEN_BEDROCK` | — | Amazon Bedrock API key — used when no first-party credentials are set |
+| `BEDROCK_REGION` | `us-east-1` | Bedrock region (also honors `AWS_REGION`) |
 | `FINRAG_MODEL` | `claude-opus-5` | Vision + answer model |
 | `FINRAG_FALLBACK_MODEL` | `claude-opus-4-8` | Retry model on safety refusal |
 | `FINRAG_STORAGE_DIR` | `./storage` | Qdrant + image storage |
@@ -68,6 +70,8 @@ finrag search-visual "revenue trend chart"  # ColPali page search
 | `FINRAG_SPARSE_MODEL` | `Qdrant/bm25` | Sparse model for hybrid |
 | `FINRAG_CHUNK_SIZE` / `_OVERLAP` | 512 / 64 | Narrative chunking |
 | `FINRAG_TOP_K` | 6 | Retrieval depth |
+
+**Backends.** With `ANTHROPIC_API_KEY` (or an `ant auth login` profile) the vision and answer steps call the first-party Claude API and use native structured outputs. With only `AWS_BEARER_TOKEN_BEDROCK` set they switch to Amazon Bedrock (`anthropic.`-prefixed model IDs) and get the same validated Pydantic results through a forced tool call, since Bedrock doesn't accept `output_config.format`. Vision content blocks work identically on both.
 
 ## Tests
 
@@ -88,7 +92,7 @@ src/finrag/
 ├── retrieval.py      # dense+sparse hybrid retrieval
 ├── colpali_store.py  # optional ColPali page-image multivector path
 ├── answer.py         # cited answer synthesis (structured outputs)
-├── llm.py            # Anthropic SDK wrapper: vision blocks, refusal fallback
+├── llm.py            # Anthropic SDK wrapper: vision blocks, refusal fallback, Claude API + Bedrock backends
 └── cli.py            # finrag ingest / search / ask / search-visual
 ```
 
