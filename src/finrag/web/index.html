@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>finrag · Financial Report Q&amp;A</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f6f5c'/><path d='M8 22V10h9M8 16h7M20 22l4-12' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">f</div>
+        <div>
+          <div class="brand-name">finrag</div>
+          <div class="brand-sub">Multi-modal RAG for financial reports</div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <h2>Add a report</h2>
+        <label class="dropzone" id="dropzone" tabindex="0">
+          <input type="file" id="file-input" accept="application/pdf,.pdf" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+          <span><strong>Drop a PDF</strong> or click to choose</span>
+          <small>10-K, 10-Q, annual or quarterly report</small>
+        </label>
+        <label class="toggle" id="vision-toggle">
+          <input type="checkbox" id="vision" checked>
+          <span class="switch" aria-hidden="true"></span>
+          <span>Describe charts with Claude vision</span>
+        </label>
+        <div id="jobs"></div>
+      </section>
+
+      <section class="panel grow">
+        <h2>Documents <span class="count" id="doc-count">0</span></h2>
+        <ul class="docs" id="docs"></ul>
+        <p class="muted empty" id="docs-empty">No reports yet. Add one above, or ingest from the CLI with <code>finrag ingest</code>.</p>
+      </section>
+
+      <footer class="status" id="status">Connecting…</footer>
+    </aside>
+
+    <main class="main">
+      <div class="mode" role="tablist">
+        <button role="tab" class="tab active" data-mode="ask" aria-selected="true">Ask</button>
+        <button role="tab" class="tab" data-mode="search" aria-selected="false">Search</button>
+      </div>
+
+      <form class="query" id="query-form">
+        <textarea id="query" rows="1" placeholder="Ask about revenue, margins, guidance, charts…" autocomplete="off"></textarea>
+        <button type="submit" class="primary" id="submit">Ask</button>
+      </form>
+      <p class="hint" id="mode-hint">Answers use only the indexed reports and cite the exact page for every claim.</p>
+
+      <div class="suggestions" id="suggestions">
+        <button type="button">What was Q2 2026 revenue and how does it compare to last year?</button>
+        <button type="button">How did gross margin change by quarter?</button>
+        <button type="button">What does the revenue chart show?</button>
+        <button type="button">What is the full-year guidance?</button>
+      </div>
+
+      <div id="results" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <header>
+      <div>
+        <div class="drawer-title" id="drawer-title"></div>
+        <div class="muted" id="drawer-sub"></div>
+      </div>
+      <button class="icon" id="drawer-close" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="drawer-body">
+      <h3>Retrieved chunk</h3>
+      <div class="chunk-text" id="drawer-text"></div>
+      <h3>Source page</h3>
+      <div class="page-wrap"><img id="drawer-img" alt="Source page"></div>
+      <a id="drawer-pdf" class="link" target="_blank" rel="noopener">Open the full PDF at this page ↗</a>
+    </div>
+  </aside>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

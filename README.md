@@ -18,9 +18,10 @@ graph LR
     CH --> Q[(Qdrant<br/>dense + sparse)]
     PDF -. optional .-> CP[ColPali page<br/>multivectors] -.-> Q
     Q --> R[Hybrid retrieval] --> A[Claude answer<br/>with citations]
+    A --> W[Web UI<br/>cited answers + source pages]
 ```
 
-- **Parsing (dirty data).** Three extractors, each doing what it's best at: Unstructured partitions narrative text into typed elements (with a pdfplumber fallback), pdfplumber lifts tables into Markdown, and PyMuPDF extracts embedded figures — plus renders vector-drawing-heavy pages, since charts in real PDFs are often vector art invisible to image extraction.
+- **Parsing (dirty data).** Three extractors, each doing what it's best at: Unstructured partitions narrative text into typed elements (with a pdfplumber fallback), pdfplumber lifts ruled tables into Markdown (unruled financial statements, where the grid detector comes back mostly empty, are rebuilt from text rows: a period header such as `Q3-2025` or `30-Sep-25`, then label + numeric values, with footnote markers and footer page numbers kept out of the numbers), and PyMuPDF extracts embedded figures — plus renders vector-drawing-heavy pages, since charts in real PDFs are often vector art invisible to image extraction.
 - **Multi-modal step.** Every figure goes through Claude vision (`claude-opus-5`) and comes back as a structured `ChartDescription` (type, axes, key values, trend) via the SDK's `messages.parse()`. The description text is indexed, so *chart content is retrievable by keyword and meaning*.
 - **Chunking strategy.** Element-aware: narrative text is sentence-split with overlap per page (exact page provenance survives), tables are indexed **whole** (splitting a table destroys it), chart descriptions are single chunks tied to their page.
 - **Hybrid retrieval.** LlamaIndex `QdrantVectorStore` with `enable_hybrid=True`: dense vectors from `bge-small-en-v1.5` (fastembed — fully local, no API) fused with `Qdrant/bm25` sparse vectors at query time. Qdrant runs embedded (a local directory) — no server, no Docker.
@@ -56,6 +57,34 @@ finrag ask "What was Q2 2026 revenue and how does it compare to last year?"
 finrag search-visual "revenue trend chart"  # ColPali page search
 ```
 
+## Web UI
+
+```bash
+finrag serve                 # http://127.0.0.1:8000
+finrag serve --port 9000 --host 0.0.0.0
+```
+
+A single-page app served by the same process (FastAPI, no Node build step):
+
+- **Add a report.** Drag a PDF in. Ingestion runs in the background with live progress: parsing, describing each figure with Claude vision (toggle it off to skip the LLM step), then indexing.
+- **Ask.** Answers come back with inline `[n]` citation chips. Each chip opens the retrieved chunk (tables rendered as tables) beside an image of the exact source page, with a link to the PDF at that page. Chunks that were retrieved but not cited are listed separately, and an `insufficient_context` answer is flagged rather than presented as fact.
+- **Search.** Hybrid dense + BM25 results with scores and element types (text, table, chart), with no LLM call.
+- **Documents.** Pages, chunks, tables and described charts per report; deleting a report removes its chunks from Qdrant.
+
+Without Claude credentials the UI still works for upload (text and tables only) and search; Ask is disabled and says why.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/status` | LLM backend, models, document count |
+| `GET /api/documents` · `POST /api/documents` | List reports · upload a PDF (`file`, `vision`), returns a job |
+| `GET /api/jobs/{id}` | Ingestion progress |
+| `DELETE /api/documents/{name}` | Remove a report and its chunks |
+| `GET /api/documents/{name}/pages/{n}.png` · `/file` | Rendered source page · original PDF |
+| `POST /api/search` | `{query, top_k}` → ranked chunks |
+| `POST /api/ask` | `{question, top_k}` → answer, cited block numbers, full context |
+
+Interactive API docs are at `/docs`. The server owns the embedded Qdrant directory, so stop it before running `finrag ingest` from the CLI against the same storage. Reports ingested from the CLI are searchable in the UI but don't appear in its document list or page viewer, because the server keeps its own copy of each uploaded PDF.
+
 ## Configuration
 
 | Env var | Default | Purpose |
@@ -70,12 +99,13 @@ finrag search-visual "revenue trend chart"  # ColPali page search
 | `FINRAG_SPARSE_MODEL` | `Qdrant/bm25` | Sparse model for hybrid |
 | `FINRAG_CHUNK_SIZE` / `_OVERLAP` | 512 / 64 | Narrative chunking |
 | `FINRAG_TOP_K` | 6 | Retrieval depth |
+| `FINRAG_MAX_UPLOAD_MB` | 50 | Web upload size limit |
 
 **Backends.** With `ANTHROPIC_API_KEY` (or an `ant auth login` profile) the vision and answer steps call the first-party Claude API and use native structured outputs. With only `AWS_BEARER_TOKEN_BEDROCK` set they switch to Amazon Bedrock (`anthropic.`-prefixed model IDs) and get the same validated Pydantic results through a forced tool call, since Bedrock doesn't accept `output_config.format`. Vision content blocks work identically on both.
 
 ## Tests
 
-Parsing, chunking, and **end-to-end hybrid retrieval run fully offline** (local embeddings + embedded Qdrant on a synthetic PDF built by the test suite); the vision and answer LLM steps are covered with mocks:
+Parsing, chunking, and **end-to-end hybrid retrieval run fully offline** (local embeddings + embedded Qdrant on a synthetic PDF built by the test suite); the vision and answer LLM steps are covered with mocks. The web API has an end-to-end test (upload, ingest, search, ask, page image, delete) on the same offline stack:
 
 ```bash
 pytest
@@ -93,7 +123,9 @@ src/finrag/
 ├── colpali_store.py  # optional ColPali page-image multivector path
 ├── answer.py         # cited answer synthesis (structured outputs)
 ├── llm.py            # Anthropic SDK wrapper: vision blocks, refusal fallback, Claude API + Bedrock backends
-└── cli.py            # finrag ingest / search / ask / search-visual
+├── server.py         # FastAPI JSON API + background ingestion for the web UI
+├── web/              # single-page UI (index.html, app.js, styles.css)
+└── cli.py            # finrag ingest / search / ask / search-visual / serve
 ```
 
 ## Scope notes

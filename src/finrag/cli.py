@@ -137,5 +137,18 @@ def search_visual(query, top_k) -> None:
         console.print(f"{hit['score']:.3f}  {hit['source']} p.{hit['page']}")
 
 
+@main.command()
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", default=8000, type=int, show_default=True)
+def serve(host, port) -> None:
+    """Start the web UI and JSON API."""
+    import uvicorn
+
+    from .server import create_app
+
+    console.print(f"finrag web UI on [bold]http://{host}:{port}[/bold]  (storage: {config.STORAGE_DIR})")
+    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+
+
 if __name__ == "__main__":
     main()

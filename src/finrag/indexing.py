@@ -37,8 +37,10 @@ def _vector_store(client: QdrantClient) -> QdrantVectorStore:
     )
 
 
-def build_index(nodes: list[TextNode], storage_dir: Path | None = None) -> VectorStoreIndex:
-    client = _client(storage_dir)
+def build_index(
+    nodes: list[TextNode], storage_dir: Path | None = None, client: QdrantClient | None = None
+) -> VectorStoreIndex:
+    client = client or _client(storage_dir)
     store = _vector_store(client)
     storage_context = StorageContext.from_defaults(vector_store=store)
     return VectorStoreIndex(
@@ -49,7 +51,7 @@ def build_index(nodes: list[TextNode], storage_dir: Path | None = None) -> Vecto
     )
 
 
-def load_index(storage_dir: Path | None = None) -> VectorStoreIndex:
-    client = _client(storage_dir)
+def load_index(storage_dir: Path | None = None, client: QdrantClient | None = None) -> VectorStoreIndex:
+    client = client or _client(storage_dir)
     store = _vector_store(client)
     return VectorStoreIndex.from_vector_store(vector_store=store, embed_model=_embed_model())
