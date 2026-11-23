@@ -35,3 +35,9 @@ def test_table_content_is_retrievable(index):
 def test_metadata_travels_through(index):
     chunks = retrieve(index, "full-year revenue guidance", top_k=3)
     assert all(c.source.endswith(".pdf") and c.page >= 1 for c in chunks)
+
+
+def test_documents_filter_limits_sources(index, sample_pdf):
+    hits = retrieve(index, "revenue", top_k=5, documents=[sample_pdf.name])
+    assert hits and all(c.source == sample_pdf.name for c in hits)
+    assert retrieve(index, "revenue", top_k=5, documents=["some-other-report.pdf"]) == []

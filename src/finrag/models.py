@@ -40,6 +40,11 @@ class ChartDescription(BaseModel):
     )
     trend: str = Field(description="One-sentence trend summary")
 
+    @property
+    def is_data(self) -> bool:
+        """False for photos, logos and decoration (chart_type "other"): nothing to retrieve."""
+        return self.chart_type.strip().lower() != "other"
+
     def as_text(self) -> str:
         lines = [f"[{self.chart_type}] {self.title}", self.description]
         if self.key_values:

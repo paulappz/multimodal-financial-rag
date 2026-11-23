@@ -23,3 +23,13 @@ def test_describe_all_fills_chart_text_only():
     assert "Key values: Q2'26: $4.2M" in chart.text
     assert text.text == "hello"
     assert result[0] is chart
+
+
+def test_photos_are_left_out_of_the_index():
+    photo = ParsedElement(type=ElementType.CHART, page=11, source="r.pdf", image_png=b"\x89PNGfake")
+    desc = ChartDescription(chart_type="Other", title="Vehicle unveiling at night",
+                            description="A promotional photo; not a data visualization.",
+                            key_values=[], trend="None.")
+    with patch("finrag.charts.describe_chart", return_value=desc):
+        describe_all([photo])
+    assert photo.text == ""  # no text, so chunking skips it

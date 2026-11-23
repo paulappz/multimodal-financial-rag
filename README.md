@@ -22,7 +22,7 @@ graph LR
 ```
 
 - **Parsing (dirty data).** Three extractors, each doing what it's best at: Unstructured partitions narrative text into typed elements (with a pdfplumber fallback), pdfplumber lifts ruled tables into Markdown (unruled financial statements, where the grid detector comes back mostly empty, are rebuilt from text rows: a period header such as `Q3-2025` or `30-Sep-25`, then label + numeric values, with footnote markers and footer page numbers kept out of the numbers), and PyMuPDF extracts embedded figures — plus renders vector-drawing-heavy pages, since charts in real PDFs are often vector art invisible to image extraction.
-- **Multi-modal step.** Every figure goes through Claude vision (`claude-opus-5`) and comes back as a structured `ChartDescription` (type, axes, key values, trend) via the SDK's `messages.parse()`. The description text is indexed, so *chart content is retrievable by keyword and meaning*.
+- **Multi-modal step.** Every figure goes through Claude vision (`claude-opus-5`) and comes back as a structured `ChartDescription` (type, axes, key values, trend) via the SDK's `messages.parse()`. The description text is indexed, so *chart content is retrievable by keyword and meaning*. Figures are downscaled to a 1568 px long side before the call (full-page photo spreads in real filings run 6–12 MB, over the API's 5 MB image limit). Photos and logos (`chart_type` "other") are left out of the index, and a figure the API rejects is skipped and reported instead of failing the whole ingest.
 - **Chunking strategy.** Element-aware: narrative text is sentence-split with overlap per page (exact page provenance survives), tables are indexed **whole** (splitting a table destroys it), chart descriptions are single chunks tied to their page.
 - **Hybrid retrieval.** LlamaIndex `QdrantVectorStore` with `enable_hybrid=True`: dense vectors from `bge-small-en-v1.5` (fastembed — fully local, no API) fused with `Qdrant/bm25` sparse vectors at query time. Qdrant runs embedded (a local directory) — no server, no Docker.
 - **Visual embeddings (optional).** The `[colpali]` extra adds late-interaction page retrieval: ColPali multivectors stored in Qdrant with a MaxSim comparator, querying page *layouts* directly.
@@ -110,6 +110,26 @@ Parsing, chunking, and **end-to-end hybrid retrieval run fully offline** (local 
 ```bash
 pytest
 ```
+
+## Evaluation
+
+`eval/` scores a running server against questions with known answers. `eval/custodian_q3.json` has 30 questions on two real filings, Custodian Investment Plc's Q3 2026 and Q3 2025 statements (public, from the company's Financials page): 27 figures copied from the reports' executive summaries, each with the pages that print it (found by searching every page for the exact figure), plus 3 questions the reports can't answer.
+
+```bash
+python eval/build_custodian.py path/to/pdfs          # rebuild the set from the two PDFs
+finrag serve                                          # with both reports uploaded
+python eval/run_eval.py eval/custodian_q3.json --top-k 20 --scope            # retrieval only, no LLM calls
+python eval/run_eval.py eval/custodian_q3.json --top-k 20 --scope --answers  # also score answers
+```
+
+It reports retrieval hit rate (a retrieved chunk is on a page that prints the figure), answer accuracy (the figure is stated, 0.5% tolerance across thousands/millions/billions and naira/kobo, or the answer says the reports don't cover it) and citation accuracy.
+
+| Setting | Retrieval hit | Correct figure | Correct citation |
+|---|---|---|---|
+| 6 chunks, all reports | 56% | 53% | 56% |
+| 20 chunks, limited to the question's report (`documents`) | 93% | 80% | 93% |
+
+Median answer time was about the same (5.2 s vs 5.7 s). The misses were "the context doesn't show it", never a wrong figure; most came from statement tables without grid lines, which the parser now rebuilds so each label keeps its numbers.
 
 ## Project layout
 

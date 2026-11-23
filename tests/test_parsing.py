@@ -74,3 +74,20 @@ def test_unruled_statement_rebuilt_from_text_rows(tmp_path):
     assert "| Restructuring and other | 238 | 162 | — | (5) |" in md
     assert "| Total current assets | 64,653 | 68,642 | 69,748 | 68,758 |" in md
     assert "28" not in md.splitlines()[-1]
+
+
+def test_statement_headers_with_hidden_columns_and_overflow_cells():
+    from finrag.parsing import _period_header, _rows_paired, _with_entity_names
+
+    # Real Custodian headers: a hidden "Restated" column leaves "Dec-" or "ated 1" between the dates.
+    assert _period_header("In thousands of naira Note 30-Sep-26 31-Dec-25 Dec- 30-Sep-26 31-Dec-25") == [
+        "30-Sep-26", "31-Dec-25", "—", "30-Sep-26", "31-Dec-25"]
+    assert _period_header("In thousands of naira Note 30-Sep-25 31-Dec-24 ated 1 30-Sep-25 31-Dec-24") == [
+        "30-Sep-25", "31-Dec-24", "—", "30-Sep-25", "31-Dec-24"]
+    assert _period_header("Total assets were higher than in 2025") is None
+    assert _with_entity_names(["30-Sep-26", "30-Sep-25", "30-Sep-26", "30-Sep-25"], "Group Group Company Company") == [
+        "Group 30-Sep-26", "Group 30-Sep-25", "Company 30-Sep-26", "Company 30-Sep-25"]
+    # A ruled grid that squashes several line items into one cell is not trusted.
+    squashed = [["Insurance service revenue 115,848,850", None],
+                ["Sales\nDividend Income\nInterest Income", "9,688,292\n2,310,204\n33,173,920"]]
+    assert not _rows_paired(squashed)

@@ -50,7 +50,9 @@ def _table_to_markdown(rows: list[list[str | None]]) -> str:
 
 
 # Financial statements are mostly "label  1,234  (56)  —  12%" rows under a period header.
-_VALUE = re.compile(r"^(\(?[-–]?[$€£]?\d[\d,]*(\.\d+)?[%x]?\)?|[—–-]|n/?a|nm)$", re.IGNORECASE)
+_VALUE = re.compile(r"^(\(?[-–]?[$€£]?\d[\d,]*(\.\d+)?[%x]?\)?|[—–-]|n/?a|nm|#+)$", re.IGNORECASE)
+_OVERFLOW = re.compile(r"^#+$")  # spreadsheet overflow ("####") left in the PDF: a cell with no readable value
+MAX_HEADER_JUNK = 2  # fragments of a hidden column header ("Dec-", "ated 1") tolerated between periods
 _PERIOD = re.compile(
     r"^(Q[1-4][-–]?(\d{2}|\d{4})|[1-4]Q[-–]?(\d{2}|\d{4})|FY[-–]?\d{2,4}|H[12][-–]?\d{2,4}|(19|20)\d{2}"
     r"|\d{1,2}[-–/][A-Za-z]{3}[-–/]\d{2,4}|YoY|QoQ|TTM|LTM)$",
@@ -94,13 +96,44 @@ def _split_row(line: str) -> tuple[str, list[str]]:
 
 
 def _period_header(line: str) -> list[str] | None:
-    tokens = line.split()
-    periods = []
-    for tok in reversed(tokens):
-        if not _PERIOD.match(tok):
+    """Column headers at the end of a line: periods (30-Sep-26, Q3-2025, YoY ...).
+
+    Up to MAX_HEADER_JUNK short fragments between two periods count as one unnamed column:
+    real statements carry hidden "Restated" columns whose header text survives as "Dec-" or "ated 1".
+    """
+    cols: list[str] = []
+    junk = 0
+    for tok in reversed(line.split()):
+        if _PERIOD.match(tok):
+            if junk:
+                cols.insert(0, "—")
+                junk = 0
+            cols.insert(0, tok)
+        elif cols and junk < MAX_HEADER_JUNK and len(tok) <= 6:
+            junk += 1
+        else:
             break
-        periods.insert(0, tok)
-    return periods if len(periods) >= 2 else None
+    return cols if sum(c != "—" for c in cols) >= 2 else None
+
+
+def _with_entity_names(periods: list[str], line_above: str) -> list[str]:
+    """Prefix columns with the entity row above them ("Group Group Company Company").
+
+    Consolidated and separate statements repeat the same dates for each entity; without the
+    entity name "30-Sep-26" is ambiguous.
+    """
+    words = line_above.split()
+    if not words or not all(w.isalpha() and w[0].isupper() for w in words):
+        return periods
+    named = [i for i, p in enumerate(periods) if p != "—"]
+    if len(words) == len(periods):
+        return [f"{w} {p}" for w, p in zip(words, periods)]
+    if len(words) == len(named):
+        out = list(periods)
+        for w, i in zip(words, named):
+            out[i] = f"{w} {periods[i]}"
+        return out
+    return periods
 
 
 def _text_row_tables(page) -> list[str]:
@@ -124,8 +157,8 @@ def _text_row_tables(page) -> list[str]:
         periods = _period_header(line)
         if periods:
             flush()
-            header = periods
-            label = line[: line.rfind(periods[0])].strip()
+            header = _with_entity_names(periods, prev)
+            label = line[: line.find(periods[0])].strip()
             caption = label if len(label) > 3 else prev
         elif header:
             label, values = _split_row(line)
@@ -137,6 +170,7 @@ def _text_row_tables(page) -> list[str]:
             if values and not label:
                 pass  # page numbers and stray figures
             elif values:
+                values = ["" if _OVERFLOW.match(v) else v for v in values]
                 rows.append([label, *[""] * (len(header) - len(values)), *values])
             elif len(line) <= 120 and not line.endswith("."):
                 rows.append([label, *[""] * len(header)])  # section heading inside the table
@@ -153,17 +187,32 @@ def _grid_fill(rows: list[list[str | None]]) -> float:
     return sum(1 for c in cells if c and c.strip()) / len(cells) if cells else 0.0
 
 
+def _rows_paired(rows: list[list[str | None]]) -> bool:
+    """True when most body rows have a label and at least one numeric value in the same row."""
+    body = [r for r in rows[1:] if any((c or "").strip() for c in r)]
+    if len(body) < MIN_TABLE_ROWS - 1:
+        return False
+    stacked = any(sum(bool(_VALUE.match(x.strip())) for x in (c or "").split("\n")) > 1 for r in body for c in r)
+    if stacked:  # several line items squashed into one cell
+        return False
+    paired = sum(
+        1 for r in body
+        if (r[0] or "").strip() and any(_VALUE.match((c or "").strip().split("\n")[0]) for c in r[1:])
+    )
+    return paired / len(body) >= 0.8
+
+
 def extract_tables(path: Path) -> list[ParsedElement]:
     elements: list[ParsedElement] = []
     with pdfplumber.open(path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
+            # Trust ruled grids only when each row pairs a label with its numbers. On real filings detection
+            # often "succeeds" while putting labels and values in different rows; then rebuild from text rows.
             grids = page.extract_tables()
-            good = [t for t in grids if _grid_fill(t) >= MIN_GRID_FILL]
-            if grids and len(good) == len(grids):
+            if grids and all(_grid_fill(t) >= MIN_GRID_FILL and _rows_paired(t) for t in grids):
                 tables = [_table_to_markdown(t) for t in grids]
             else:
-                # Ruled detection failed (mostly empty cells) or found nothing: rebuild from text rows,
-                # falling back to whatever the ruled detector found if the text has no table shape.
+                good = [t for t in grids if _grid_fill(t) >= MIN_GRID_FILL]
                 tables = _text_row_tables(page) or [_table_to_markdown(t) for t in good]
             for markdown in tables:
                 if markdown:

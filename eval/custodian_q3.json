@@ -1,0 +1,381 @@
+[
+ {
+  "id": "rev26",
+  "question": "What was Custodian's group gross revenue for the nine months ended 30 September 2026?",
+  "value": 255414006,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2
+   ]
+  }
+ },
+ {
+  "id": "isr26",
+  "question": "What was Custodian's group insurance service revenue for the nine months ended 30 September 2026?",
+  "value": 115848850,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    75
+   ]
+  }
+ },
+ {
+  "id": "int26",
+  "question": "How much interest income did the Custodian group earn in the nine months to September 2026?",
+  "value": 110142303,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    6,
+    75
+   ]
+  }
+ },
+ {
+  "id": "fee26",
+  "question": "What were the group's fees and commission income for the nine months ended 30 September 2026?",
+  "value": 16584105,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    75
+   ]
+  }
+ },
+ {
+  "id": "pbt26",
+  "question": "What was Custodian's group profit before taxation for the nine months ended 30 September 2026?",
+  "value": 66200792,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    6
+   ]
+  }
+ },
+ {
+  "id": "tax26",
+  "question": "What was the group income tax expense for the nine months ended 30 September 2026?",
+  "value": 8606102,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    73
+   ]
+  }
+ },
+ {
+  "id": "pat26",
+  "question": "What was Custodian's group profit after tax for the nine months ended 30 September 2026?",
+  "value": 57594690,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    5,
+    77
+   ]
+  }
+ },
+ {
+  "id": "tci26",
+  "question": "What was the group's total comprehensive income for the nine months ended 30 September 2026?",
+  "value": 64140041,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4
+   ]
+  }
+ },
+ {
+  "id": "mgx26",
+  "question": "What were the group's management expenses for the nine months to September 2026?",
+  "value": 29949785,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    76
+   ]
+  }
+ },
+ {
+  "id": "ix26",
+  "question": "What was the group's interest expense for the nine months ended 30 September 2026?",
+  "value": 50774192,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    75
+   ]
+  }
+ },
+ {
+  "id": "ta26",
+  "question": "What were Custodian's group total assets at 30 September 2026?",
+  "value": 1398272006,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3
+   ]
+  }
+ },
+ {
+  "id": "ta25d",
+  "question": "What were Custodian's group total assets at 31 December 2025?",
+  "value": 1064733159,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3
+   ]
+  }
+ },
+ {
+  "id": "eq26",
+  "question": "What was equity attributable to owners of the parent at 30 September 2026 for the group?",
+  "value": 235185330,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3,
+    5
+   ]
+  }
+ },
+ {
+  "id": "cash26",
+  "question": "How much cash and cash equivalents did the group hold at 30 September 2026?",
+  "value": 193807109,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3,
+    6,
+    61
+   ]
+  }
+ },
+ {
+  "id": "icl26",
+  "question": "What were the group's insurance contract liabilities at 30 September 2026?",
+  "value": 338841610,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3,
+    67,
+    72
+   ]
+  }
+ },
+ {
+  "id": "fa26",
+  "question": "What was the value of the group's financial assets at 30 September 2026?",
+  "value": 754425717,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    3,
+    61
+   ]
+  }
+ },
+ {
+  "id": "eps26",
+  "question": "What were Custodian's group basic earnings per share for the nine months ended 30 September 2026?",
+  "value": 827,
+  "unit": "kobo",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    5,
+    77
+   ]
+  }
+ },
+ {
+  "id": "cpat26",
+  "question": "What was the profit for the period of Custodian Investment Plc as a separate company (not the group) for the nine months to September 2026?",
+  "value": 23811429,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    5,
+    77
+   ]
+  }
+ },
+ {
+  "id": "cdiv26",
+  "question": "How much dividend income did Custodian Investment Plc (the company) receive in the nine months ended 30 September 2026?",
+  "value": 23912202,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    6,
+    75
+   ]
+  }
+ },
+ {
+  "id": "pat25",
+  "question": "What was the group profit after tax for the nine months ended 30 September 2025?",
+  "value": 45649246,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    77
+   ],
+   "Custodian-Q3-2025.pdf": [
+    2,
+    4,
+    5,
+    59
+   ]
+  }
+ },
+ {
+  "id": "shares",
+  "question": "How many ordinary shares does Custodian Investment Plc have in issue?",
+  "value": 5881864195,
+  "unit": "count",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    77
+   ],
+   "Custodian-Q3-2025.pdf": [
+    60
+   ]
+  }
+ },
+ {
+  "id": "rev25",
+  "question": "What was Custodian's group gross revenue for the nine months ended 30 September 2025?",
+  "value": 173846699,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2
+   ],
+   "Custodian-Q3-2025.pdf": [
+    2
+   ]
+  }
+ },
+ {
+  "id": "isr25",
+  "question": "What was the group insurance service revenue for the nine months ended 30 September 2025?",
+  "value": 121708949,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2026.pdf": [
+    2,
+    4,
+    75
+   ],
+   "Custodian-Q3-2025.pdf": [
+    2,
+    4,
+    58
+   ]
+  }
+ },
+ {
+  "id": "pbt24",
+  "question": "What was the group profit before taxation for the nine months ended 30 September 2024?",
+  "value": 52447247,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2025.pdf": [
+    2,
+    4
+   ]
+  }
+ },
+ {
+  "id": "ta25",
+  "question": "What were the group's total assets at 30 September 2025?",
+  "value": 501758836,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2025.pdf": [
+    2,
+    3
+   ]
+  }
+ },
+ {
+  "id": "eps24",
+  "question": "What were group basic earnings per share for the nine months ended 30 September 2024?",
+  "value": 750,
+  "unit": "kobo",
+  "pages": {
+   "Custodian-Q3-2025.pdf": [
+    2,
+    4,
+    47,
+    58,
+    59
+   ]
+  }
+ },
+ {
+  "id": "eq25",
+  "question": "What was group equity attributable to owners of the parent at 30 September 2025?",
+  "value": 163282978,
+  "unit": "k",
+  "pages": {
+   "Custodian-Q3-2025.pdf": [
+    2,
+    3,
+    5
+   ]
+  }
+ },
+ {
+  "id": "seg26",
+  "question": "What profit did Custodian's pension business (Crusader Sterling Pensions) make in the nine months to September 2026?",
+  "not_in_reports": true
+ },
+ {
+  "id": "div27",
+  "question": "What dividend per share will Custodian pay for the 2027 financial year?",
+  "not_in_reports": true
+ },
+ {
+  "id": "fcst",
+  "question": "What profit will Custodian make in 2027?",
+  "not_in_reports": true
+ }
+]

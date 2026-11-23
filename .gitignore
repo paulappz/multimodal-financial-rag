@@ -9,3 +9,4 @@ build/
 .env
 storage/
 sample_report.pdf
+eval/results*.json

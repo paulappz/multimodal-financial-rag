@@ -98,3 +98,19 @@ def test_end_to_end_flow(client, sample_pdf):
     assert client.delete(f"/api/documents/{sample_pdf.name}").status_code == 204
     assert client.get("/api/documents").json() == []
     assert client.post("/api/search", json={"query": "revenue"}).json()["results"] == []
+
+
+def test_rejected_figure_is_skipped_not_fatal(tmp_path, sample_pdf, monkeypatch):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")  # makes vision available
+    request = httpx.Request("POST", "https://bedrock-mantle.us-east-1.api.aws/v1/messages")
+    too_big = anthropic.BadRequestError("image exceeds 5 MB maximum",
+                                        response=httpx.Response(400, request=request), body=None)
+    with TestClient(create_app(tmp_path / "store")) as c, \
+            patch("finrag.charts.describe_chart", side_effect=too_big):
+        job = _wait(c, _upload(c, sample_pdf, vision="true").json()["id"])
+        assert job["status"] == "done", job
+        assert job["warnings"] and "skipped" in job["warnings"][0]
+        doc = c.get("/api/documents").json()[0]
+    assert doc["figures"] >= 1
+    assert doc["figures_described"] == 0 and doc["figures_failed"] == doc["figures"]
+    assert doc["chunks"] > 0

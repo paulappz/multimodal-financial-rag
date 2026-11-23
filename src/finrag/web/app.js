@@ -45,7 +45,9 @@ async function loadDocs() {
   $("docs-empty").hidden = docs.length > 0;
   $("docs").innerHTML = docs.map((d) => {
     const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-    const figs = d.figures ? ` · ${d.figures_described}/${d.figures} charts described` : "";
+    const photos = d.figures_not_data ? `, ${d.figures_not_data} photos left out` : "";
+    const failed = d.figures_failed ? `, ${d.figures_failed} skipped` : "";
+    const figs = d.figures ? ` · ${d.figures_described}/${d.figures} charts described${photos}${failed}` : "";
     return `<li class="doc">
       <div class="info">
         <div class="title">${esc(d.name)}</div>

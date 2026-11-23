@@ -7,7 +7,9 @@ chart content becomes retrievable by plain-text hybrid search.
 
 from __future__ import annotations
 
-from .llm import image_block, run_structured
+import anthropic
+
+from .llm import RequestRefusedError, image_block, run_structured
 from .models import ChartDescription, ElementType, ParsedElement
 
 SYSTEM = """You convert charts and figures from financial reports into faithful textual
@@ -28,10 +30,20 @@ def describe_chart(png_bytes: bytes) -> ChartDescription:
 
 
 def describe_all(elements: list[ParsedElement], progress=None) -> list[ParsedElement]:
-    """Fill in .text for every chart element via the vision model. Mutates and returns."""
+    """Fill in .text for every chart element via the vision model. Mutates and returns.
+
+    A figure the API rejects (bad or unreadable image), or one that holds no data
+    (a photo or logo), is left without text, so chunking skips it; auth, quota
+    and network errors still propagate.
+    """
     for el in elements:
         if el.type is ElementType.CHART and el.image_png and not el.text:
-            description = describe_chart(el.image_png)
+            try:
+                description = describe_chart(el.image_png)
+            except (anthropic.BadRequestError, ValueError, RequestRefusedError):
+                continue
+            if not description.is_data:
+                continue
             el.text = description.as_text()
             if progress:
                 progress(el)

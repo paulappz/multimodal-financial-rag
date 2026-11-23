@@ -28,6 +28,7 @@ from qdrant_client import models as qm
 from . import config
 from .chunking import build_nodes
 from .indexing import _client, build_index, load_index
+from .llm import RequestRefusedError
 from .models import ElementType, RetrievedChunk
 from .parsing import parse_pdf
 from .retrieval import retrieve
@@ -49,11 +50,15 @@ def llm_backend() -> str:
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     top_k: int | None = Field(default=None, ge=1, le=30)
+    documents: list[str] | None = Field(default=None, max_length=50,
+                                        description="Only search these reports (file names); all when omitted")
 
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     top_k: int | None = Field(default=None, ge=1, le=30)
+    documents: list[str] | None = Field(default=None, max_length=50,
+                                        description="Only search these reports (file names); all when omitted")
 
 
 class Store:
@@ -101,11 +106,11 @@ class Store:
             png.unlink()
 
     # retrieval -----------------------------------------------------------
-    def retrieve(self, query: str, top_k: int | None) -> list[RetrievedChunk]:
+    def retrieve(self, query: str, top_k: int | None, documents: list[str] | None = None) -> list[RetrievedChunk]:
         with self.lock:
             if not self.has_index():
                 return []
-            return retrieve(load_index(client=self.client), query, top_k)
+            return retrieve(load_index(client=self.client), query, top_k, documents)
 
     # ingestion -----------------------------------------------------------
     def start_ingest(self, name: str, vision: bool) -> dict:
@@ -122,14 +127,23 @@ class Store:
             elements = parse_pdf(self.uploads / name)
             counts = {t.value: sum(1 for e in elements if e.type is t) for t in ElementType}
             charts = [e for e in elements if e.type is ElementType.CHART]
-            described = 0
+            described = failed = not_data = 0
             if charts and vision:
                 from .charts import describe_chart
 
                 for i, el in enumerate(charts, 1):
                     job["stage"] = f"Describing figure {i} of {len(charts)} with Claude vision"
-                    el.text = describe_chart(el.image_png).as_text()
-                    described += 1
+                    try:
+                        description = describe_chart(el.image_png)
+                        if description.is_data:
+                            el.text = description.as_text()
+                            described += 1
+                        else:
+                            not_data += 1  # photo or logo: left out of the index
+                    except (anthropic.BadRequestError, ValueError, RequestRefusedError) as exc:
+                        # One unreadable figure is skipped, not fatal; auth, quota and network errors still fail the job.
+                        failed += 1
+                        job.setdefault("warnings", []).append(f"Figure on page {el.page} skipped: {exc}")
             elements = [e for e in elements if e.text]
             nodes = build_nodes(elements)
             job["stage"] = f"Indexing {len(nodes)} chunks"
@@ -141,7 +155,8 @@ class Store:
                 docs.append({
                     "name": name, "pages": pages, "chunks": len(nodes),
                     "text_blocks": counts["text"], "tables": counts["table"],
-                    "figures": counts["chart"], "figures_described": described,
+                    "figures": counts["chart"], "figures_described": described, "figures_failed": failed,
+                    "figures_not_data": not_data,
                     "ingested_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 })
                 self._save(docs)
@@ -242,14 +257,14 @@ def create_app(storage_dir: Path | None = None) -> FastAPI:
 
     @app.post("/api/search")
     def search(req: SearchRequest) -> dict:
-        chunks = store.retrieve(req.query, req.top_k)
+        chunks = store.retrieve(req.query, req.top_k, req.documents)
         return {"query": req.query, "results": [_chunk_json(i, c) for i, c in enumerate(chunks, 1)]}
 
     @app.post("/api/ask")
     def ask(req: AskRequest) -> dict:
         from .answer import answer_question
 
-        chunks = store.retrieve(req.question, req.top_k)
+        chunks = store.retrieve(req.question, req.top_k, req.documents)
         if not chunks:
             raise HTTPException(409, "Nothing is indexed yet. Upload a report first.")
         try:
